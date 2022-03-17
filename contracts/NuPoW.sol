@@ -19,6 +19,8 @@
 pragma solidity ^0.8.0;
 
 abstract contract NuPoW {
+    bytes32 public constant CFELDE = 0xffff000cfe1de000cfe1de000cfe1de000cfe1de000cfe1de000cfe1de000000;
+
     uint public immutable CHAIN_LENGTH_TARGET;
     uint public immutable MAX_MINT;
     uint public immutable STALLED_DURATION;
@@ -48,9 +50,7 @@ abstract contract NuPoW {
         bytes32 stalledDifficulty
     ) internal {
         unchecked {
-            bool stalled = block.timestamp > stalledTimestamp;
-
-            if (stalled && lastChallenger != address(0)) {
+            if (block.timestamp > stalledTimestamp) {
                 if (chainLength < CHAIN_LENGTH_TARGET) {
                     nextMint = nextMint << 1;
                     if (nextMint == 0) nextMint = 1;
@@ -61,9 +61,7 @@ abstract contract NuPoW {
 
                 chainLength = 0;
                 lastHash = stalledDifficulty;
-                lastChallenger = address(0);
-            } else if (stalled) {
-                lastHash = stalledDifficulty;
+                stalledTimestamp = block.timestamp + STALLED_DURATION;
             }
         }
     }
@@ -77,18 +75,28 @@ abstract contract NuPoW {
 
             if (hash < lastHash && block.number > lastBlockNumber) {
                 chainLength++;
-                stalledTimestamp = block.timestamp + STALLED_DURATION;
 
                 emit ChainProgress(msg.sender, chainLength, lastHash, hash, nextMint);
 
                 lastHash = hash;
                 lastChallenger = msg.sender;
                 lastBlockNumber = block.number;
+                stalledTimestamp = block.timestamp + STALLED_DURATION;
 
                 return nextMint;
             } else {
                 return 0;
             }
         }
+    }
+
+    // Base implementation of mint (actual minting left to inheriting contract)
+    function mint(
+        uint seed
+    ) public virtual returns (
+        uint mintValue
+    ) {
+        _manage(blockhash(block.number - 1) | CFELDE);
+        mintValue = _challenge(seed);
     }
 }
