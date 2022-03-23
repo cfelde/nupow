@@ -32,7 +32,7 @@ abstract contract NuPoW {
     bytes32 public lastHash;
     address public lastChallenger;
 
-    event ChainProgress(address indexed challenger, uint chainLength, bytes32 oldHash, bytes32 newHash, uint nextMint);
+    event ChainProgress(address indexed challenger, uint chainLength, bytes32 oldHash, bytes32 newHash, uint nextMint, string tag);
 
     constructor(
         uint _CHAIN_LENGTH_TARGET,
@@ -68,35 +68,38 @@ abstract contract NuPoW {
 
     // Manage hash and progress
     function _challenge(
-        uint seed
-    ) internal returns (uint) {
+        uint seed,
+        string memory tag
+    ) internal returns (uint, bool) {
         unchecked {
             bytes32 hash = keccak256(abi.encode(seed, msg.sender, lastHash));
 
             if (hash < lastHash && block.number > lastBlockNumber) {
                 chainLength++;
 
-                emit ChainProgress(msg.sender, chainLength, lastHash, hash, nextMint);
+                emit ChainProgress(msg.sender, chainLength, lastHash, hash, nextMint, tag);
 
                 lastHash = hash;
                 lastChallenger = msg.sender;
                 lastBlockNumber = block.number;
                 stalledTimestamp = block.timestamp + STALLED_DURATION;
 
-                return nextMint;
+                return (nextMint, true);
             } else {
-                return 0;
+                return (0, false);
             }
         }
     }
 
     // Base implementation of mint (actual minting left to inheriting contract)
     function mint(
-        uint seed
+        uint seed,
+        string memory tag
     ) public virtual returns (
-        uint mintValue
+        uint mintValue,
+        bool progress
     ) {
         _manage(blockhash(block.number - 1) | CFELDE);
-        mintValue = _challenge(seed);
+        (mintValue, progress) = _challenge(seed, tag);
     }
 }

@@ -47,11 +47,13 @@ contract Crystal is NuPoW, ERC20FlashMint {
     }
 
     function mint(
-        uint seed
+        uint seed,
+        string memory tag
     ) public override returns (
-        uint mintValue
+        uint mintValue,
+        bool progress
     ) {
-        mintValue = super.mint(seed);
+        (mintValue, progress) = super.mint(seed, tag);
 
         if (totalMint + mintValue > MAX_TOTAL_MINT) mintValue = 0;
 

@@ -29,15 +29,15 @@ contract TestNuPoW is NuPoW {
     constructor() NuPoW(5, 60, 10 seconds) {}
 
     function challenge(
-        uint seed
+        uint seed,
+        string memory tag
     ) public returns (
         bool progress,
         uint mint,
         address receiver
     ) {
         _manage(bytes32(type(uint).max));
-        mint = _challenge(seed);
-        progress = mint > 0;
+        (mint, progress) = _challenge(seed, tag);
         receiver = msg.sender;
         emit TestChallenge(progress, mint, receiver);
     }
